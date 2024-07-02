@@ -33,6 +33,7 @@ import {
   IconTrash,
   IconX,
   Input,
+  IconCopy,
 } from 'ui'
 import ProtectedSchemaWarning from '../ProtectedSchemaWarning'
 
@@ -81,7 +82,7 @@ const TableList = ({
       select(tables) {
         return filterString.length === 0
           ? tables
-          : tables.filter((table) => table.name.includes(filterString))
+          : tables.filter((table) => table.name.toLowerCase().includes(filterString.toLowerCase()))
       },
     }
   )
@@ -99,8 +100,6 @@ const TableList = ({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl text-foreground">Database Tables</h3>
-
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <SchemaSelector
@@ -232,9 +231,11 @@ const TableList = ({
                           <p>{x.name}</p>
                         )}
                       </Table.td>
-                      <Table.td className="hidden max-w-sm truncate lg:table-cell break-all whitespace-normal">
+                      <Table.td className="hidden lg:table-cell ">
                         {x.comment !== null ? (
-                          <p title={x.comment}>{x.comment}</p>
+                          <span className="lg:max-w-48 truncate inline-block" title={x.comment}>
+                            {x.comment}
+                          </span>
                         ) : (
                           <p className="text-border-stronger">No description</p>
                         )}
@@ -264,7 +265,7 @@ const TableList = ({
                             asChild
                             type="default"
                             iconRight={<Columns size={14} className="text-foreground-light" />}
-                            className="whitespace-nowrap hover:border-gray-500"
+                            className="whitespace-nowrap hover:border-muted"
                             style={{ paddingTop: 3, paddingBottom: 3 }}
                           >
                             <Link href={`/project/${ref}/database/tables/${x.id}`}>
@@ -279,7 +280,7 @@ const TableList = ({
                                   <IconMoreVertical />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent side="bottom" align="end" className="w-32">
+                              <DropdownMenuContent side="bottom" align="end" className="w-36">
                                 <DropdownMenuItem
                                   disabled={!canUpdateTables}
                                   onClick={() => onEditTable(x)}
@@ -318,7 +319,17 @@ const TableList = ({
                                   <IconEye size="tiny" />
                                   <p>View table</p>
                                 </DropdownMenuItem>
-
+                                <DropdownMenuItem
+                                  key="duplicate-table"
+                                  className="space-x-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    snap.onDuplicateTable()
+                                  }}
+                                >
+                                  <IconCopy size="tiny" />
+                                  <span>Duplicate Table</span>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   disabled={!canUpdateTables || isLocked}
                                   onClick={() => onDeleteTable(x)}

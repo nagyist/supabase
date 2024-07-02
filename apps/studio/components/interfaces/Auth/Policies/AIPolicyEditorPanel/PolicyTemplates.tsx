@@ -8,23 +8,32 @@ import SimpleCodeBlock from 'components/to-be-cleaned/SimpleCodeBlock'
 import CardButton from 'components/ui/CardButton'
 import CopyButton from 'components/ui/CopyButton'
 import NoSearchResults from 'components/ui/NoSearchResults'
-import { getGeneralPolicyTemplates } from '../PolicyEditorModal/PolicyEditorModal.constants'
-import { useTableEditorStateSnapshot } from 'state/table-editor'
+import {
+  getGeneralPolicyTemplates,
+  getRealtimePolicyTemplates,
+} from '../PolicyEditorModal/PolicyEditorModal.constants'
 
 interface PolicyTemplatesProps {
+  schema: string
+  table: string
   selectedPolicy?: PostgresPolicy
   selectedTemplate?: string
   onSelectTemplate: (template: any) => void
 }
 
 export const PolicyTemplates = ({
+  schema,
+  table,
   selectedPolicy,
   selectedTemplate,
   onSelectTemplate,
 }: PolicyTemplatesProps) => {
   const [search, setSearch] = useState('')
-  const state = useTableEditorStateSnapshot()
-  const templates = getGeneralPolicyTemplates(state.selectedSchemaName, 'table_name')
+
+  const templates =
+    schema === 'realtime'
+      ? getRealtimePolicyTemplates()
+      : getGeneralPolicyTemplates(schema, table.length > 0 ? table : 'table_name')
 
   const baseTemplates =
     selectedPolicy !== undefined
@@ -66,7 +75,7 @@ export const PolicyTemplates = ({
                   title={template.name}
                   titleClass="text-sm"
                   className={cn(
-                    'transition',
+                    'transition w-full',
                     template.id === selectedTemplate
                       ? '!border-stronger bg-surface-200 hover:!border-stronger'
                       : ''
@@ -78,10 +87,15 @@ export const PolicyTemplates = ({
                   icon={
                     <div className="min-w-16">
                       <Badge
-                        className="!rounded font-mono"
+                        className={cn(
+                          '!rounded font-mono',
+                          template.command === 'UPDATE'
+                            ? 'bg-blue-400 text-blue-900 border border-blue-800'
+                            : ''
+                        )}
                         variant={
                           template.command === 'ALL'
-                            ? 'default'
+                            ? 'outline'
                             : template.command === 'SELECT'
                               ? 'brand'
                               : template.command === 'UPDATE'

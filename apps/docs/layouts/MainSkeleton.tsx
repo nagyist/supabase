@@ -1,146 +1,152 @@
+'use client'
+
 import { useTheme } from 'next-themes'
 import Image from 'next/legacy/image'
 import Link from 'next/link'
-import { type CSSProperties, type PropsWithChildren, memo, useEffect } from 'react'
-
+import { type PropsWithChildren, memo, useEffect } from 'react'
 import { cn } from 'ui'
-
 import Footer from '~/components/Navigation/Footer'
+import HomeMenuIconPicker from '~/components/Navigation/NavigationMenu/HomeMenuIconPicker'
 import NavigationMenu, { type MenuId } from '~/components/Navigation/NavigationMenu/NavigationMenu'
 import TopNavBar from '~/components/Navigation/NavigationMenu/TopNavBar'
+import { DOCS_CONTENT_CONTAINER_ID } from '~/features/ui/helpers.constants'
 import { menuState, useMenuMobileOpen } from '~/hooks/useMenuState'
 
 const levelsData = {
   home: {
-    icon: '/docs/img/icons/menu/home',
+    icon: 'home',
     name: 'Home',
   },
   gettingstarted: {
-    icon: '/docs/img/icons/menu/getting-started',
+    icon: 'getting-started',
     name: 'Getting Started',
   },
   database: {
-    icon: '/docs/img/icons/menu/database',
+    icon: 'database',
     name: 'Database',
   },
   api: {
-    icon: '/docs/img/icons/menu/rest',
+    icon: 'rest',
     name: 'REST API',
   },
   graphql: {
-    icon: '/docs/img/icons/menu/graphql',
+    icon: 'graphql',
     name: 'GraphQL',
   },
   auth: {
-    icon: '/docs/img/icons/menu/auth',
+    icon: 'auth',
     name: 'Auth',
   },
   functions: {
-    icon: '/docs/img/icons/menu/functions',
+    icon: 'edge-functions',
     name: 'Edge Functions',
   },
   realtime: {
-    icon: '/docs/img/icons/menu/realtime',
+    icon: 'realtime',
     name: 'Realtime',
   },
   analytics: {
-    icon: '/docs/img/icons/menu/analytics',
+    icon: 'analytics',
     name: 'Analytics',
   },
   storage: {
-    icon: '/docs/img/icons/menu/storage',
+    icon: 'storage',
     name: 'Storage',
   },
   ai: {
-    icon: '/docs/img/icons/menu/ai',
+    icon: 'ai',
     name: 'AI & Vectors',
   },
   supabase_cli: {
-    icon: '/docs/img/icons/menu/reference-cli',
+    icon: 'reference-cli',
     name: 'Supabase CLI',
   },
   platform: {
-    icon: '/docs/img/icons/menu/platform',
+    icon: 'platform',
     name: 'Platform',
   },
   resources: {
-    icon: '/docs/img/icons/menu/resources',
+    icon: 'resources',
     name: 'Resources',
   },
   self_hosting: {
-    icon: '/docs/img/icons/menu/self-hosting',
+    icon: 'self-hosting',
     name: 'Self-Hosting',
   },
   integrations: {
-    icon: '/docs/img/icons/menu/integrations',
+    icon: 'integrations',
     name: 'Integrations',
   },
   reference_javascript_v1: {
-    icon: '/docs/img/icons/menu/reference-javascript',
+    icon: 'reference-javascript',
     name: 'Javascript Reference v1.0',
   },
   reference_javascript_v2: {
-    icon: '/docs/img/icons/menu/reference-javascript',
+    icon: 'reference-javascript',
     name: 'Javascript Reference v2.0',
   },
   reference_dart_v1: {
-    icon: '/docs/img/icons/menu/reference-dart',
+    icon: 'reference-dart',
     name: 'Dart Reference v1.0',
   },
   reference_dart_v2: {
-    icon: '/docs/img/icons/menu/reference-dart',
+    icon: 'reference-dart',
     name: 'Dart Reference v2.0',
   },
   reference_csharp_v0: {
-    icon: '/docs/img/icons/menu/reference-csharp',
+    icon: 'reference-csharp',
     name: 'C# Reference v0.0',
   },
+  reference_csharp_v1: {
+    icon: 'reference-csharp',
+    name: 'C# Reference v1.0',
+  },
   reference_python_v2: {
-    icon: '/docs/img/icons/menu/reference-python',
+    icon: 'reference-python',
     name: 'Python Reference v2.0',
   },
   reference_swift_v1: {
-    icon: '/docs/img/icons/menu/reference-swift',
+    icon: 'reference-swift',
     name: 'Swift Reference v1.0',
   },
   reference_swift_v2: {
-    icon: '/docs/img/icons/menu/reference-swift',
+    icon: 'reference-swift',
     name: 'Swift Reference v2.0',
   },
   reference_kotlin_v1: {
-    icon: '/docs/img/icons/menu/reference-kotlin',
+    icon: 'reference-kotlin',
     name: 'Kotlin Reference v1.0',
   },
   reference_kotlin_v2: {
-    icon: '/docs/img/icons/menu/reference-kotlin',
+    icon: 'reference-kotlin',
     name: 'Kotlin Reference v2.0',
   },
   reference_cli: {
-    icon: '/docs/img/icons/menu/reference-cli',
+    icon: 'reference-cli',
     name: 'CLI Reference',
   },
   reference_api: {
-    icon: '/docs/img/icons/menu/reference-api',
+    icon: 'reference-api',
     name: 'Management API Reference',
   },
   reference_self_hosting_auth: {
-    icon: '/docs/img/icons/menu/reference-auth',
+    icon: 'reference-auth',
     name: 'Auth Server Reference',
   },
   reference_self_hosting_storage: {
-    icon: '/docs/img/icons/menu/reference-storage',
+    icon: 'reference-storage',
     name: 'Storage Server Reference',
   },
   reference_self_hosting_realtime: {
-    icon: '/docs/img/icons/menu/reference-realtime',
+    icon: 'reference-realtime',
     name: 'Realtime Server Reference',
   },
   reference_self_hosting_analytics: {
-    icon: '/docs/img/icons/menu/reference-analytics',
+    icon: 'reference-analytics',
     name: 'Analytics Server Reference',
   },
   reference_self_hosting_functions: {
-    icon: '/docs/img/icons/menu/reference-functions',
+    icon: 'reference-functions',
     name: 'Functions Server Reference',
   },
 }
@@ -155,7 +161,7 @@ const MobileHeader = memo(function MobileHeader({ menuId }: { menuId: MenuId }) 
         'transition-all ease-out z-10',
         'top-0',
         mobileMenuOpen && 'absolute',
-        'flex items-center h-[var(--mobile-header-height,40px)]',
+        'flex items-center h-[var(--header-height,40px)]',
         mobileMenuOpen ? 'gap-0' : 'gap-3'
       )}
     >
@@ -187,8 +193,8 @@ const MobileHeader = memo(function MobileHeader({ menuId }: { menuId: MenuId }) 
         </div>
       </button>
       <div className={[].join(' ')}>
-        <img
-          src={menuLevel ? levelsData[menuLevel].icon + '.svg' : levelsData['home'].icon + '.svg'}
+        <HomeMenuIconPicker
+          icon={menuLevel ? levelsData[menuLevel].icon : 'home'}
           className={[
             'transition-all duration-200',
             mobileMenuOpen ? 'invisible w-0 h-0' : 'w-4 h-4',
@@ -264,25 +270,28 @@ const HeaderLogo = memo(function HeaderLogo() {
 
 const Container = memo(function Container({
   children,
-  style,
-}: PropsWithChildren<{ style?: CSSProperties }>) {
+  className,
+}: PropsWithChildren<{ className?: string }>) {
   const mobileMenuOpen = useMenuMobileOpen()
 
   return (
     <div
-      // #docs-content-container is used by layout to scroll to top
-      id="docs-content-container"
+      // used by layout to scroll to top
+      id={DOCS_CONTENT_CONTAINER_ID}
       className={cn(
-        // 'overflow-x-auto',
+        /**
+         * This controls scroll restoration on page navigation, so the overflow
+         * must be on the element with DOCS_CONTENT_CONTAINER_ID
+         */
+        'overflow-auto',
         'w-full transition-all ease-out',
-        // 'absolute lg:relative',
         mobileMenuOpen ? 'ml-[75%] sm:ml-[50%] md:ml-[33%] overflow-hidden' : 'overflow-auto',
         // desktop override any margin styles
-        'lg:ml-0'
+        'lg:ml-0',
+        className
       )}
-      style={style}
     >
-      <div className="flex flex-col relative">{children}</div>
+      {children}
     </div>
   )
 })
@@ -296,7 +305,7 @@ const NavContainer = memo(function NavContainer({ menuId }: { menuId: MenuId }) 
       className={[
         // 'hidden',
         'absolute lg:relative',
-        mobileMenuOpen ? 'w-[75%] sm:w-[50%] md:w-[33%] left-0' : 'w-0 -left-[280px]',
+        mobileMenuOpen ? 'w-[75%] sm:w-[50%] md:w-[33%] left-0 z-20' : 'w-0 -left-[280px]',
         'lg:w-[420px] !lg:left-0',
         // desktop override any left styles
         'lg:left-0',
@@ -357,14 +366,7 @@ function MainSkeleton({ children, menuId }: PropsWithChildren<{ menuId: MenuId }
   return (
     <div className="flex flex-row h-full">
       <NavContainer menuId={menuId} />
-      <Container
-        style={
-          {
-            '--desktop-header-height': '60px',
-            '--mobile-header-height': '40px',
-          } as CSSProperties
-        }
-      >
+      <Container className="[--header-height:40px] lg:[--header-height:60px]">
         <div className={['lg:sticky top-0 z-10 overflow-hidden'].join(' ')}>
           <TopNavBar />
         </div>
@@ -379,10 +381,8 @@ function MainSkeleton({ children, menuId }: PropsWithChildren<{ menuId: MenuId }
             <MobileHeader menuId={menuId} />
           </div>
         </div>
-        <div className="grow">
-          {children}
-          <Footer />
-        </div>
+        {children}
+        <Footer />
         <MobileMenuBackdrop />
       </Container>
     </div>

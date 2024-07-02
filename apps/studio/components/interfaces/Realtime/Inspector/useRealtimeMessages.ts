@@ -1,6 +1,10 @@
-import { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
-import { sortBy, take } from 'lodash'
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { RealtimeChannel, RealtimeClient } from '@supabase/realtime-js-next'
+import {
+  DEFAULT_GLOBAL_OPTIONS,
+  DEFAULT_REALTIME_OPTIONS,
+} from '@supabase/supabase-js/dist/main/lib/constants'
+import { merge, sortBy, take } from 'lodash'
+import { Dispatch, SetStateAction, useCallback, useEffect, useReducer, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { useProjectApiQuery } from 'data/config/project-api-query'
@@ -43,6 +47,7 @@ export interface RealtimeConfig {
   token: string
   schema: string
   table: string
+  isChannelPrivate: boolean
   filter: string | undefined
   bearer: string | null
   enableBroadcast: boolean
@@ -50,20 +55,26 @@ export interface RealtimeConfig {
   enableDbChanges: boolean
 }
 
-export const useRealtimeMessages = ({
-  enabled,
-  channelName,
-  projectRef,
-  logLevel,
-  token,
-  schema,
-  table,
-  filter,
-  bearer,
-  enablePresence,
-  enableDbChanges,
-  enableBroadcast,
-}: RealtimeConfig) => {
+export const useRealtimeMessages = (
+  config: RealtimeConfig,
+  setRealtimeConfig: Dispatch<SetStateAction<RealtimeConfig>>
+) => {
+  const {
+    enabled,
+    channelName,
+    projectRef,
+    logLevel,
+    token,
+    schema,
+    table,
+    isChannelPrivate,
+    filter,
+    bearer,
+    enablePresence,
+    enableDbChanges,
+    enableBroadcast,
+  } = config
+
   const { data } = useProjectApiQuery({ projectRef: projectRef })
 
   // the default host is prod until the correct one comes through an API call.
@@ -71,39 +82,43 @@ export const useRealtimeMessages = ({
     ? `${data.autoApiService.protocol}://${data.autoApiService.endpoint}`
     : `https://${projectRef}.supabase.co`
 
+  const realtimeUrl = `${host}/realtime/v1`.replace(/^http/i, 'ws')
+
   const [logData, dispatch] = useReducer(reducer, [] as LogData[])
   const pushMessage = (messageType: string, metadata: any) => {
     dispatch({ type: 'add', payload: { messageType, metadata } })
   }
 
   // Instantiate our client with the Realtime server and params to connect with
-  let [client, setClient] = useState<SupabaseClient<any, 'public', any> | undefined>()
+  let [client, setClient] = useState<RealtimeClient>()
   let [channel, setChannel] = useState<RealtimeChannel | undefined>()
 
   useEffect(() => {
     if (!enabled) {
       return
     }
-    const opts = {
-      global: {
-        headers: {
-          'User-Agent': `supabase-api/${process.env.VERCEL_GIT_COMMIT_SHA || 'unknown-sha'}`,
-        },
+
+    const globalOptions = merge(DEFAULT_GLOBAL_OPTIONS, {
+      headers: {
+        'User-Agent': `supabase-api/${process.env.VERCEL_GIT_COMMIT_SHA || 'unknown-sha'}`,
       },
-      realtime: {
-        params: {
-          log_level: logLevel,
-        },
-      },
+    })
+    const realtimeOptions = merge(DEFAULT_REALTIME_OPTIONS, { params: { log_level: logLevel } })
+
+    const options = {
+      headers: globalOptions.headers,
+      ...realtimeOptions,
+      params: { apikey: token, ...realtimeOptions.params },
     }
-    const newClient = new SupabaseClient(host, token, opts)
-    if (bearer != '') {
-      newClient.realtime.setAuth(bearer)
+    const realtimeClient = new RealtimeClient(realtimeUrl, options)
+
+    if (bearer) {
+      realtimeClient.setAuth(bearer)
     }
 
-    setClient(newClient)
+    setClient(realtimeClient)
     return () => {
-      client?.realtime.disconnect()
+      realtimeClient.disconnect()
       setClient(undefined)
     }
   }, [enabled, bearer, host, logLevel, token])
@@ -114,7 +129,7 @@ export const useRealtimeMessages = ({
     }
     dispatch({ type: 'clear' })
     const newChannel = client?.channel(channelName, {
-      config: { broadcast: { self: true } },
+      config: { broadcast: { self: true }, private: isChannelPrivate },
     })
     // Hack to confirm Postgres is subscribed
     // Need to add 'extension' key in the 'payload'
@@ -155,7 +170,7 @@ export const useRealtimeMessages = ({
     }
 
     // Finally, subscribe to the Channel we just setup
-    newChannel.subscribe(async (status, error) => {
+    newChannel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         // Let LiveView know we connected so we can update the button text
         // pushMessageTo('#conn_info', 'broadcast_subscribed', { host: host })
@@ -168,11 +183,14 @@ export const useRealtimeMessages = ({
             payload: { name: name, t: performance.now() },
           })
         }
-      } else if (status === 'CLOSED') {
-        // console.log(`Realtime Channel status: ${status}`)
-      } else {
-        // console.error(`Realtime Channel error status: ${status}`)
-        // console.error(`Realtime Channel error: ${error}`)
+      } else if (status === 'CHANNEL_ERROR') {
+        toast.error(
+          'Failed to connect to the channel: This may be due to restrictive RLS policies. Check your role and try again.'
+        )
+
+        newChannel.unsubscribe()
+        setChannel(undefined)
+        setRealtimeConfig({ ...config, enabled: false })
       }
     })
 

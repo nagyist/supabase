@@ -20,6 +20,8 @@ import {
   Popover_Shadcn_,
   ScrollArea,
 } from 'ui'
+import { useCheckPermissions } from 'hooks'
+import { PermissionAction } from '@supabase/shared-types/out/constants'
 
 interface SchemaSelectorProps {
   className?: string
@@ -45,6 +47,7 @@ const SchemaSelector = ({
   onSelectCreateSchema,
 }: SchemaSelectorProps) => {
   const [open, setOpen] = useState(false)
+  const canCreateSchemas = useCheckPermissions(PermissionAction.TENANT_SQL_ADMIN_WRITE, 'schemas')
 
   const { project } = useProjectContext()
   const {
@@ -77,7 +80,7 @@ const SchemaSelector = ({
             Failed to load schemas
           </AlertTitle_Shadcn_>
           <AlertDescription_Shadcn_ className="text-xs mb-2 break-words">
-            Error: {schemasError?.message}
+            Error: {(schemasError as any)?.message}
           </AlertDescription_Shadcn_>
           <Button type="default" size="tiny" onClick={() => refetchSchemas()}>
             Reload schemas
@@ -92,7 +95,6 @@ const SchemaSelector = ({
               size={size}
               disabled={disabled}
               type="default"
-              // className="w-full justify-start"
               className={`w-full [&>span]:w-full`}
               iconRight={
                 <ChevronsUpDown className="text-foreground-muted" strokeWidth={2} size={14} />
@@ -153,7 +155,7 @@ const SchemaSelector = ({
                     ))}
                   </ScrollArea>
                 </CommandGroup_Shadcn_>
-                {onSelectCreateSchema !== undefined && (
+                {onSelectCreateSchema !== undefined && canCreateSchemas && (
                   <>
                     <CommandSeparator_Shadcn_ />
                     <CommandGroup_Shadcn_>

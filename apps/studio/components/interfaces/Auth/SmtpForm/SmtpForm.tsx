@@ -34,6 +34,8 @@ import EmailRateLimitsAlert from '../EmailRateLimitsAlert'
 import { urlRegex } from './../Auth.constants'
 import { defaultDisabledSmtpFormValues } from './SmtpForm.constants'
 import { generateFormValues, isSmtpEnabled } from './SmtpForm.utils'
+import { WarningIcon } from 'ui-patterns/Icons/StatusIcons'
+import NoPermission from 'components/ui/NoPermission'
 
 const SmtpForm = () => {
   const { ref: projectRef } = useParams()
@@ -51,6 +53,7 @@ const SmtpForm = () => {
 
   const formId = 'auth-config-smtp-form'
   const initialValues = generateFormValues(authConfig)
+  const canReadConfig = useCheckPermissions(PermissionAction.READ, 'custom_config_gotrue')
   const canUpdateConfig = useCheckPermissions(PermissionAction.UPDATE, 'custom_config_gotrue')
 
   useEffect(() => {
@@ -148,11 +151,15 @@ const SmtpForm = () => {
   if (isError) {
     return (
       <Alert_Shadcn_ variant="destructive">
-        <IconAlertCircle strokeWidth={2} />
+        <WarningIcon />
         <AlertTitle_Shadcn_>Failed to retrieve auth configuration</AlertTitle_Shadcn_>
         <AlertDescription_Shadcn_>{authConfigError.message}</AlertDescription_Shadcn_>
       </Alert_Shadcn_>
     )
+  }
+
+  if (!canReadConfig) {
+    return <NoPermission resourceText="view SMTP settings" />
   }
 
   return (
@@ -277,6 +284,18 @@ const SmtpForm = () => {
                 }
               >
                 <FormSectionContent loading={isLoading}>
+                  {values['SMTP_HOST'] && values['SMTP_HOST'].endsWith('.gmail.com') && (
+                    <Alert_Shadcn_ variant="warning">
+                      <IconAlertTriangle strokeWidth={2} />
+                      <AlertTitle_Shadcn_>Check your SMTP provider</AlertTitle_Shadcn_>
+                      <AlertDescription_Shadcn_>
+                        Not all SMTP providers are designed for the email sending required by
+                        Supabase Auth. It looks like the SMTP provider you entered is designed for
+                        sending personal email messages and not for sending transactional messages.
+                        Although you can ignore this warning, email deliverability may be impacted.
+                      </AlertDescription_Shadcn_>
+                    </Alert_Shadcn_>
+                  )}
                   <Input
                     name="SMTP_HOST"
                     placeholder="your.smtp.host.com"
