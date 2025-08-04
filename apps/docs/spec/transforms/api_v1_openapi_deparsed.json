@@ -4935,7 +4935,7 @@
                         "properties": {
                           "postgres_version": {
                             "type": "string",
-                            "enum": ["15", "17", "17-oriole"]
+                            "enum": ["13", "14", "15", "17", "17-oriole"]
                           },
                           "release_channel": {
                             "type": "string",
@@ -6163,9 +6163,31 @@
                         }
                       },
                       "required": ["imageTransformation", "s3Protocol"]
+                    },
+                    "capabilities": {
+                      "type": "object",
+                      "properties": {
+                        "list_v2": {
+                          "type": "boolean"
+                        },
+                        "iceberg_catalog": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["list_v2", "iceberg_catalog"]
+                    },
+                    "external": {
+                      "type": "object",
+                      "properties": {
+                        "upstreamTarget": {
+                          "type": "string",
+                          "enum": ["main", "canary"]
+                        }
+                      },
+                      "required": ["upstreamTarget"]
                     }
                   },
-                  "required": ["fileSizeLimit", "features"]
+                  "required": ["fileSizeLimit", "features", "capabilities", "external"]
                 }
               }
             }
@@ -6246,8 +6268,19 @@
                       }
                     },
                     "required": ["imageTransformation", "s3Protocol"]
+                  },
+                  "external": {
+                    "type": "object",
+                    "properties": {
+                      "upstreamTarget": {
+                        "type": "string",
+                        "enum": ["main", "canary"]
+                      }
+                    },
+                    "required": ["upstreamTarget"]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -11598,6 +11631,298 @@
         ]
       }
     },
+    "/v1/projects/{ref}/database/jit": {
+      "get": {
+        "operationId": "v1-get-jit-access",
+        "summary": "Get user-id to role mappings for JIT access",
+        "description": "Mappings of roles a user can assume in the project database",
+        "parameters": [
+          {
+            "name": "ref",
+            "required": true,
+            "in": "path",
+            "description": "Project ref",
+            "schema": {
+              "minLength": 20,
+              "maxLength": 20,
+              "pattern": "^[a-z]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "user_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "expires_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["role"]
+                      }
+                    }
+                  },
+                  "required": ["user_id", "user_roles"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": ""
+          },
+          "500": {
+            "description": "Failed to list database jit access"
+          }
+        },
+        "tags": ["Database"],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "v1-update-jit-access",
+        "summary": "Updates a user mapping for JIT access",
+        "description": "Modifies the roles that can be assumed and for how long",
+        "parameters": [
+          {
+            "name": "ref",
+            "required": true,
+            "in": "path",
+            "description": "Project ref",
+            "schema": {
+              "minLength": 20,
+              "maxLength": 20,
+              "pattern": "^[a-z]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "minLength": 1
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "expires_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["role"]
+                    }
+                  }
+                },
+                "required": ["user_id", "roles"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "user_roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "expires_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["role"]
+                      }
+                    }
+                  },
+                  "required": ["user_id", "user_roles"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": ""
+          },
+          "500": {
+            "description": "Failed to upsert database migration"
+          }
+        },
+        "tags": ["Database"],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/{ref}/database/jit/list": {
+      "get": {
+        "operationId": "v1-list-jit-access",
+        "summary": "List all user-id to role mappings for JIT access",
+        "description": "Mappings of roles a user can assume in the project database",
+        "parameters": [
+          {
+            "name": "ref",
+            "required": true,
+            "in": "path",
+            "description": "Project ref",
+            "schema": {
+              "minLength": 20,
+              "maxLength": 20,
+              "pattern": "^[a-z]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "user_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "user_roles": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "role": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "expires_at": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["role"]
+                            }
+                          }
+                        },
+                        "required": ["user_id", "user_roles"]
+                      }
+                    }
+                  },
+                  "required": ["items"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": ""
+          },
+          "500": {
+            "description": "Failed to list database jit access"
+          }
+        },
+        "tags": ["Database"],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/{ref}/database/jit/{user_id}": {
+      "delete": {
+        "operationId": "v1-delete-jit-access",
+        "summary": "Delete JIT access by user-id",
+        "description": "Remove JIT mappings of a user, revoking all JIT database access",
+        "parameters": [
+          {
+            "name": "ref",
+            "required": true,
+            "in": "path",
+            "description": "Project ref",
+            "schema": {
+              "minLength": 20,
+              "maxLength": 20,
+              "pattern": "^[a-z]+$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          },
+          "403": {
+            "description": ""
+          },
+          "500": {
+            "description": "Failed to remove JIT access"
+          }
+        },
+        "tags": ["Database"],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/v1/projects/{ref}/functions": {
       "get": {
         "operationId": "v1-list-all-functions",
@@ -15541,7 +15866,7 @@
               "properties": {
                 "postgres_version": {
                   "type": "string",
-                  "enum": ["15", "17", "17-oriole"]
+                  "enum": ["13", "14", "15", "17", "17-oriole"]
                 },
                 "release_channel": {
                   "type": "string",
@@ -15998,9 +16323,31 @@
               }
             },
             "required": ["imageTransformation", "s3Protocol"]
+          },
+          "capabilities": {
+            "type": "object",
+            "properties": {
+              "list_v2": {
+                "type": "boolean"
+              },
+              "iceberg_catalog": {
+                "type": "boolean"
+              }
+            },
+            "required": ["list_v2", "iceberg_catalog"]
+          },
+          "external": {
+            "type": "object",
+            "properties": {
+              "upstreamTarget": {
+                "type": "string",
+                "enum": ["main", "canary"]
+              }
+            },
+            "required": ["upstreamTarget"]
           }
         },
-        "required": ["fileSizeLimit", "features"]
+        "required": ["fileSizeLimit", "features", "capabilities", "external"]
       },
       "UpdateStorageConfigBody": {
         "type": "object",
@@ -16043,8 +16390,19 @@
               }
             },
             "required": ["imageTransformation", "s3Protocol"]
+          },
+          "external": {
+            "type": "object",
+            "properties": {
+              "upstreamTarget": {
+                "type": "string",
+                "enum": ["main", "canary"]
+              }
+            },
+            "required": ["upstreamTarget"]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PostgresConfigResponse": {
         "type": "object",
@@ -18636,6 +18994,94 @@
           }
         },
         "required": ["databases"]
+      },
+      "JitAccessResponse": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": ["role"]
+            }
+          }
+        },
+        "required": ["user_id", "user_roles"]
+      },
+      "JitListAccessResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "user_roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "expires_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["role"]
+                  }
+                }
+              },
+              "required": ["user_id", "user_roles"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "UpdateJitAccessBody": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "minLength": 1
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": ["role"]
+            }
+          }
+        },
+        "required": ["user_id", "roles"]
       },
       "FunctionResponse": {
         "type": "object",
